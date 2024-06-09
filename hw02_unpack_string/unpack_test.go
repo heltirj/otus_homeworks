@@ -2,9 +2,9 @@ package hw02unpackstring
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +45,7 @@ func TestUnpackInvalidString(t *testing.T) {
 	}
 }
 
-func TestRepeatRune(t *testing.T) {
+func Test_repeatRune(t *testing.T) {
 	tests := []struct {
 		name     string
 		rune1    rune
@@ -84,6 +84,166 @@ func TestRepeatRune(t *testing.T) {
 			if tc.isError {
 				assert.Error(t, err)
 			}
+		})
+	}
+}
+
+func Test_createSequenceFromLetter(t *testing.T) {
+	type args struct {
+		letter   rune
+		nextRune rune
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantSeq    string
+		wantOffset int
+		wantErr    error
+	}{
+		{
+			name: "next rune is a letter",
+			args: args{
+				letter:   'a',
+				nextRune: 'b',
+			},
+			wantSeq:    "a",
+			wantOffset: 1,
+			wantErr:    nil,
+		},
+		{
+			name: "next rune is a slash",
+			args: args{
+				letter:   'a',
+				nextRune: '\\',
+			},
+			wantSeq:    "a",
+			wantOffset: 1,
+			wantErr:    nil,
+		},
+		{
+			name: "next rune is a digit",
+			args: args{
+				letter:   'a',
+				nextRune: '4',
+			},
+			wantSeq:    "aaaa",
+			wantOffset: 2,
+			wantErr:    nil,
+		},
+		{
+			name: "next rune is invalid char",
+			args: args{
+				letter:   'a',
+				nextRune: '_',
+			},
+			wantSeq:    "",
+			wantOffset: 0,
+			wantErr:    ErrInvalidString,
+		},
+		{
+			name: "first rune is invalid char",
+			args: args{
+				letter:   '2',
+				nextRune: 'b',
+			},
+			wantSeq:    "",
+			wantOffset: 0,
+			wantErr:    ErrFirstArgIsNotALetter,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, err := createSequenceFromLetter(tt.args.letter, tt.args.nextRune)
+			assert.ErrorIs(t, err, tt.wantErr)
+			assert.Equalf(t, tt.wantSeq, got, "createSequenceFromLetter(%v, %v)", tt.args.letter, tt.args.nextRune)
+			assert.Equalf(t, tt.wantOffset, got1, "createSequenceFromLetter(%v, %v)", tt.args.letter, tt.args.nextRune)
+		})
+	}
+}
+
+func Test_createSequenceAfterSlash(t *testing.T) {
+	type args struct {
+		runes []rune
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantSeq    string
+		wantOffset int
+		wantErr    error
+	}{
+		{
+			name: "unpack escaped digit with count",
+			args: args{
+				runes: []rune{'2', '2'},
+			},
+			wantSeq:    "22",
+			wantOffset: 3,
+			wantErr:    nil,
+		},
+		{
+			name: "unpack escaped slash with count",
+			args: args{
+				runes: []rune{'\\', '2'},
+			},
+			wantSeq:    "\\\\",
+			wantOffset: 3,
+			wantErr:    nil,
+		},
+		{
+			name: "unpack escaped digit without count",
+			args: args{
+				runes: []rune{'3'},
+			},
+			wantSeq:    "3",
+			wantOffset: 2,
+			wantErr:    nil,
+		},
+
+		{
+			name: "unpack escaped slash without count",
+			args: args{
+				runes: []rune{'\\'},
+			},
+			wantSeq:    "\\",
+			wantOffset: 2,
+			wantErr:    nil,
+		},
+		{
+			name: "invalid first param",
+			args: args{
+				runes: []rune{'n', '2'},
+			},
+			wantSeq:    "",
+			wantOffset: 0,
+			wantErr:    ErrFirstArgIsNotADigitOrSlash,
+		},
+		{
+			name: "invalid alone param",
+			args: args{
+				runes: []rune{'_'},
+			},
+			wantSeq:    "",
+			wantOffset: 0,
+			wantErr:    ErrFirstArgIsNotADigitOrSlash,
+		},
+
+		{
+			name: "invalid params count",
+			args: args{
+				runes: []rune{'a', 'b', 'c'},
+			},
+			wantSeq:    "",
+			wantOffset: 0,
+			wantErr:    ErrWrongArgsCount,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, err := createSequenceAfterEscapeSym(tt.args.runes...)
+			assert.ErrorIs(t, err, tt.wantErr)
+			assert.Equal(t, tt.wantSeq, got)
+			assert.Equal(t, tt.wantOffset, got1)
 		})
 	}
 }

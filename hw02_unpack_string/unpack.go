@@ -7,7 +7,12 @@ import (
 	"unicode"
 )
 
-var ErrInvalidString = errors.New("invalid string")
+var (
+	ErrInvalidString              = errors.New("invalid string")
+	ErrWrongArgsCount             = errors.New("wrong args count")
+	ErrFirstArgIsNotALetter       = errors.New("first arg is not a letter")
+	ErrFirstArgIsNotADigitOrSlash = errors.New("first arg is not a digit or a slash")
+)
 
 func Unpack(input string) (string, error) {
 	var result strings.Builder
@@ -17,24 +22,18 @@ func Unpack(input string) (string, error) {
 	end := len(runesInput) - 1
 	for i <= end {
 		if unicode.IsLetter(runesInput[i]) {
-			if i == end || isRuneLetterOrSlash(runesInput[i+1]) {
+			if i == end {
 				result.WriteRune(runesInput[i])
-				i++
-				continue
+				break
 			}
 
-			if unicode.IsDigit(runesInput[i+1]) {
-				s, err := repeatRune(runesInput[i], runesInput[i+1])
-				if err != nil {
-					return "", err
-				}
-
-				result.WriteString(s)
-				i += 2
-				continue
+			seq, offset, err := createSequenceFromLetter(runesInput[i], runesInput[i+1])
+			if err != nil {
+				return "", ErrInvalidString
 			}
-
-			return "", ErrInvalidString
+			result.WriteString(seq)
+			i += offset
+			continue
 		}
 
 		if runesInput[i] == '\\' {
@@ -42,22 +41,18 @@ func Unpack(input string) (string, error) {
 				return "", ErrInvalidString
 			}
 
-			if unicode.IsDigit(runesInput[i+1]) || runesInput[i+1] == '\\' {
-				if i < end-1 && unicode.IsDigit(runesInput[i+2]) {
-					s, err := repeatRune(runesInput[i+1], runesInput[i+2])
-					if err != nil {
-						return "", err
-					}
-
-					result.WriteString(s)
-					i += 3
-					continue
-				}
-
-				result.WriteRune(runesInput[i+1])
-				i += 2
-				continue
+			args := []rune{runesInput[i+1]}
+			if i < end-1 {
+				args = append(args, runesInput[i+2])
 			}
+
+			seq, offset, err := createSequenceAfterEscapeSym(args...)
+			if err != nil {
+				return "", ErrInvalidString
+			}
+			result.WriteString(seq)
+			i += offset
+			continue
 		}
 
 		return "", ErrInvalidString
@@ -69,7 +64,7 @@ func Unpack(input string) (string, error) {
 func repeatRune(toRepeat, counter rune) (string, error) {
 	count, err := strconv.Atoi(string(counter))
 	if err != nil {
-		return "", err
+		return "", ErrInvalidString
 	}
 
 	return strings.Repeat(string(toRepeat), count), nil
@@ -81,4 +76,35 @@ func isSlash(r rune) bool {
 
 func isRuneLetterOrSlash(r rune) bool {
 	return unicode.IsLetter(r) || isSlash(r)
+}
+
+func createSequenceFromLetter(letter, nextRune rune) (string, int, error) {
+	if !unicode.IsLetter(letter) {
+		return "", 0, ErrFirstArgIsNotALetter
+	}
+	if isRuneLetterOrSlash(nextRune) {
+		return string(letter), 1, nil
+	}
+
+	seq, err := repeatRune(letter, nextRune)
+	if err != nil {
+		return "", 0, err
+	}
+	return seq, 2, nil
+}
+
+func createSequenceAfterEscapeSym(runes ...rune) (string, int, error) {
+	if len(runes) < 1 || len(runes) > 2 {
+		return "", 0, ErrWrongArgsCount
+	}
+
+	if unicode.IsDigit(runes[0]) || runes[0] == '\\' {
+		if len(runes) == 2 && unicode.IsDigit(runes[1]) {
+			seq, _ := repeatRune(runes[0], runes[1])
+			return seq, 3, nil
+		}
+		return string(runes[0]), 2, nil
+	}
+
+	return "", 0, ErrFirstArgIsNotADigitOrSlash
 }
