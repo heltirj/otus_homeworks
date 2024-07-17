@@ -84,5 +84,4 @@ func Test_list_addItem(t *testing.T) {
 	require.Equal(t, 3, l.Len())
 	require.Equal(t, 30, l.Front().Value)
 	require.Equal(t, 30, l.Back().Value)
-
 }

@@ -2,11 +2,13 @@ package hw04lrucache
 
 import "sync"
 
-type Key string
-type kvPair struct {
-	key   Key
-	value interface{}
-}
+type (
+	Key    string
+	kvPair struct {
+		key   Key
+		value interface{}
+	}
+)
 
 type Cache interface {
 	Set(key Key, value interface{}) bool
