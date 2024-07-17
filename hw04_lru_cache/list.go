@@ -58,12 +58,27 @@ func (l *list) PushBack(v interface{}) *ListItem {
 }
 
 func (l *list) Remove(i *ListItem) {
-	l.pullout(i)
-	i = nil
+	if i.Prev != nil {
+		i.Prev.Next = i.Next
+	}
+
+	if i.Next != nil {
+		i.Next.Prev = i.Prev
+	}
+
+	if i == l.Back() {
+		l.back = i.Prev
+	}
+
+	if i == l.Front() {
+		l.front = i.Next
+	}
+
+	l.length--
 }
 
 func (l *list) MoveToFront(i *ListItem) {
-	l.pullout(i)
+	l.Remove(i)
 	l.addItem(i, addTypeFront)
 }
 
@@ -89,24 +104,4 @@ func (l *list) addItem(i *ListItem, addType addType) *ListItem {
 
 	l.length++
 	return i
-}
-
-func (l *list) pullout(i *ListItem) {
-	if i.Prev != nil {
-		i.Prev.Next = i.Next
-	}
-
-	if i.Next != nil {
-		i.Next.Prev = i.Prev
-	}
-
-	if i == l.Back() {
-		l.back = i.Prev
-	}
-
-	if i == l.Front() {
-		l.front = i.Next
-	}
-
-	l.length--
 }
