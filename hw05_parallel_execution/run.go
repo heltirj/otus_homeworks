@@ -41,7 +41,7 @@ func runWithErrorCounting(tasks []Task, n, m int) error {
 		errCount := 0
 		for range errCh {
 			errCount++
-			if errCount == m && m != 0 {
+			if errCount == m {
 				stopCh <- struct{}{}
 			}
 		}
