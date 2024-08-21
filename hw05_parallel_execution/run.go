@@ -41,7 +41,8 @@ func runWithErrorCounting(tasks []Task, n, m int) error {
 		errCount := 0
 		for range errCh {
 			errCount++
-			if errCount == m && m != 0 {
+			if errCount == m {
+				emptyBuf(buf)
 				stopCh <- struct{}{}
 			}
 		}
@@ -63,7 +64,6 @@ LOOP:
 	}
 
 	wg.Wait()
-	close(buf)
 	close(errCh)
 
 	return err
@@ -73,6 +73,7 @@ func runTaskWithErrCh(task Task, wg *sync.WaitGroup, buf chan struct{}, errCh ch
 	defer wg.Done()
 	err := task()
 	<-buf
+
 	if err != nil {
 		errCh <- err
 	}
@@ -82,4 +83,10 @@ func runTaskWithoutErrCh(task Task, wg *sync.WaitGroup, buf chan struct{}) {
 	defer wg.Done()
 	_ = task()
 	<-buf
+}
+
+func emptyBuf(buf chan struct{}) {
+	close(buf)
+	for range buf {
+	}
 }
