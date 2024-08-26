@@ -52,7 +52,6 @@ func runWithErrorCounting(tasks []Task, n, m int) error {
 	wp := newWorkerPool()
 	var err error
 	for i := range tasks {
-
 		if wp.isStopped() {
 			err = ErrErrorsLimitExceeded
 			break
