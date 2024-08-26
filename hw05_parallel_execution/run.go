@@ -52,7 +52,8 @@ func runWithErrorCounting(tasks []Task, n, m int) error {
 	wp := newWorkerPool()
 	var err error
 	for i := range tasks {
-		if wp.stopped {
+
+		if wp.isStopped() {
 			err = ErrErrorsLimitExceeded
 			break
 		}
@@ -66,6 +67,12 @@ func runWithErrorCounting(tasks []Task, n, m int) error {
 	return err
 }
 
+func (wp *workerPool) isStopped() bool {
+	defer wp.mx.Unlock()
+	wp.mx.Lock()
+	return wp.stopped
+}
+
 func (wp *workerPool) runTaskWithErrorCounting(task Task, buf chan struct{}, maxCount int) {
 	defer wp.wg.Done()
 	defer wp.mx.Unlock()
@@ -76,8 +83,6 @@ func (wp *workerPool) runTaskWithErrorCounting(task Task, buf chan struct{}, max
 	}
 	if wp.errCount >= maxCount {
 		wp.stopped = true
-		<-buf
-		return
 	}
 	<-buf
 }
