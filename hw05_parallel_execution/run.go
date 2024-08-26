@@ -9,6 +9,20 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
+type workerPool struct {
+	wg       *sync.WaitGroup
+	mx       *sync.Mutex
+	stopped  bool
+	errCount int
+}
+
+func newWorkerPool() *workerPool {
+	return &workerPool{
+		wg: new(sync.WaitGroup),
+		mx: new(sync.Mutex),
+	}
+}
+
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
 	if m > 0 {
@@ -34,48 +48,38 @@ func runIgnoringErrors(tasks []Task, n int) {
 
 func runWithErrorCounting(tasks []Task, n, m int) error {
 	buf := make(chan struct{}, n)
-	errCh := make(chan error)
 	stopCh := make(chan struct{})
-
-	go func() {
-		errCount := 0
-		for range errCh {
-			errCount++
-			if errCount == m {
-				stopCh <- struct{}{}
-			}
-		}
-	}()
-
-	wg := &sync.WaitGroup{}
+	wp := newWorkerPool()
 	var err error
-LOOP:
 	for i := range tasks {
-		select {
-		case <-stopCh:
+		if wp.stopped {
 			err = ErrErrorsLimitExceeded
-			break LOOP
-		default:
-			wg.Add(1)
-			buf <- struct{}{}
-			go runTaskWithErrCh(tasks[i], wg, buf, errCh)
+			break
 		}
+		wp.wg.Add(1)
+		buf <- struct{}{}
+		go wp.runTaskWithErrorCounting(tasks[i], buf, m)
 	}
 
-	wg.Wait()
-	close(buf)
-	close(errCh)
-
+	wp.wg.Wait()
+	close(stopCh)
 	return err
 }
 
-func runTaskWithErrCh(task Task, wg *sync.WaitGroup, buf chan struct{}, errCh chan error) {
-	defer wg.Done()
+func (wp *workerPool) runTaskWithErrorCounting(task Task, buf chan struct{}, maxCount int) {
+	defer wp.wg.Done()
+	defer wp.mx.Unlock()
 	err := task()
-	<-buf
+	wp.mx.Lock()
 	if err != nil {
-		errCh <- err
+		wp.errCount++
 	}
+	if wp.errCount >= maxCount {
+		wp.stopped = true
+		<-buf
+		return
+	}
+	<-buf
 }
 
 func runTaskWithoutErrCh(task Task, wg *sync.WaitGroup, buf chan struct{}) {
