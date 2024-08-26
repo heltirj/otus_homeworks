@@ -63,6 +63,7 @@ func runWithErrorCounting(tasks []Task, n, m int) error {
 
 	wp.wg.Wait()
 	close(stopCh)
+	close(buf)
 	return err
 }
 
