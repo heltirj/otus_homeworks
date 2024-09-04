@@ -13,7 +13,7 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 
 	go func() {
 		out := CreatePipeline(in, stages...)
-		defer close(res) 
+		defer close(res)
 		for {
 			select {
 			case <-done:
