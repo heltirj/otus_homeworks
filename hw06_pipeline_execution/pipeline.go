@@ -12,20 +12,21 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	res := make(Bi)
 	go func() {
 		out := CreatePipeline(in, stages...)
-		defer func() {
-			close(res)
-			for range out {
-			}
-		}()
+		defer close(res)
+
+		stopped := false
 		for {
 			select {
 			case <-done:
-				return
+				stopped = true
 			case v, ok := <-out:
 				if !ok {
 					return
 				}
-				res <- v
+
+				if !stopped {
+					res <- v
+				}
 			}
 		}
 	}()
