@@ -1,7 +1,5 @@
 package hw06pipelineexecution
 
-import "sync/atomic"
-
 type (
 	In  = <-chan interface{}
 	Out = In
@@ -14,21 +12,22 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	res := make(Bi)
 	go func() {
 		out := CreatePipeline(in, stages...)
-		defer close(res)
-		var stopped atomic.Bool
-
+		defer func() {
+			close(res)
+			for range out {
+				_ = out
+			}
+		}()
 		for {
 			select {
 			case <-done:
-				stopped.Store(true)
+				return
 			case v, ok := <-out:
 				if !ok {
 					return
 				}
 
-				if !stopped.Load() {
-					res <- v
-				}
+				res <- v
 			}
 		}
 	}()
