@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var destPath = path.Join(os.TempDir(), "test_dst")
@@ -24,7 +25,6 @@ func TestCopy(t *testing.T) {
 
 		err = Copy(f.Name(), destPath, n+10, 0)
 		require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
-
 	})
 
 	t.Run("offset exceeds file size", func(t *testing.T) {

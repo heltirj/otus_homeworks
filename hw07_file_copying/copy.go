@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/cheggaaa/pb/v3"
 	"io"
 	"os"
+
+	"github.com/cheggaaa/pb/v3"
 )
 
 var (
@@ -47,7 +48,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	defer dest.Close()
 
 	if offset > 0 {
-		src.Seek(offset, os.SEEK_SET)
+		src.Seek(offset, io.SeekStart)
 	}
 
 	if limit > (srcSize-offset) || limit == 0 {
