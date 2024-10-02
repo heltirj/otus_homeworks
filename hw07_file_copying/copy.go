@@ -2,10 +2,10 @@ package main
 
 import (
 	"errors"
+	"github.com/cheggaaa/pb/v3"
 	"io"
 	"os"
-
-	"github.com/cheggaaa/pb/v3"
+	"path/filepath"
 )
 
 var (
@@ -13,6 +13,7 @@ var (
 	ErrOffsetExceedsFileSize    = errors.New("offset exceeds file size")
 	ErrUndefinedSourceFile      = errors.New("undefined source file")
 	ErrUndefinedDestinationFile = errors.New("undefined destination file")
+	ErrSameFromAndTo            = errors.New("same from and to paths")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
@@ -22,6 +23,20 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	if toPath == "" {
 		return ErrUndefinedDestinationFile
+	}
+
+	fromAbs, err := filepath.Abs(fromPath)
+	if err != nil {
+		return err
+	}
+
+	toAbs, err := filepath.Abs(toPath)
+	if err != nil {
+		return err
+	}
+
+	if fromAbs == toAbs {
+		return ErrSameFromAndTo
 	}
 
 	src, err := os.OpenFile(fromPath, os.O_RDONLY, os.ModePerm)
