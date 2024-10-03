@@ -10,7 +10,10 @@ import (
 	"strings"
 )
 
-var ErrInvalidFileName = errors.New("invalid file name")
+var (
+	ErrInvalidFileName     = errors.New("invalid file name")
+	ErrFailedToGetFileSize = errors.New("failed to get file size")
+)
 
 type Environment map[string]EnvValue
 
@@ -51,15 +54,20 @@ func parseFile(dirPath string, fileName string) (EnvValue, error) {
 		return EnvValue{}, fmt.Errorf("%w: %s", ErrInvalidFileName, fileName)
 	}
 
-	if os.Getenv(fileName) != "" {
-		val.NeedRemove = true
-	}
-
 	f, err := os.Open(dirPath + "/" + fileName)
 	if err != nil {
 		return EnvValue{}, err
 	}
 	defer f.Close()
+
+	stats, err := f.Stat()
+	if err != nil {
+		return EnvValue{}, ErrFailedToGetFileSize
+	}
+
+	if stats.Size() == 0 {
+		return EnvValue{NeedRemove: true}, nil
+	}
 
 	reader := bufio.NewReader(f)
 	content, err := reader.ReadBytes('\n')
