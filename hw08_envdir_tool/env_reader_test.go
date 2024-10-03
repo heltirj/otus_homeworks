@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var testDir = "testdata/env/"

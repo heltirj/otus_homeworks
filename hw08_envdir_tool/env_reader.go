@@ -71,11 +71,11 @@ func parseFile(dirPath string, fileName string) (EnvValue, error) {
 
 	reader := bufio.NewReader(f)
 	content, err := reader.ReadBytes('\n')
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return EnvValue{}, err
 	}
 
-	content = bytes.Replace(content, []byte{0}, []byte{'\n'}, -1)
+	content = bytes.ReplaceAll(content, []byte{0}, []byte{'\n'})
 	val.Value = strings.TrimRight(string(content), "\n\t ")
 
 	return val, nil
