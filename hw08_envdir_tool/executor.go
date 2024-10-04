@@ -18,6 +18,10 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 
 	res := exec.Command(cmd[0], cmd[1:]...) //nolint:gosec
 
+	if res.Stdin == nil {
+		res.Stdin = os.Stdin
+	}
+
 	if res.Stdout == nil {
 		res.Stdout = os.Stdout
 	}
