@@ -16,7 +16,10 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 		os.Setenv(k, v.Value)
 	}
 
+	currentEnv := os.Environ()
 	res := exec.Command(cmd[0], cmd[1:]...) //nolint:gosec
+
+	res.Env = append([]string{}, currentEnv...)
 
 	if res.Stdin == nil {
 		res.Stdin = os.Stdin
