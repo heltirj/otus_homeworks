@@ -6,7 +6,7 @@ LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%d
 PKG=./...
 
 # Замените на вашу строку подключения к БД
-DB_URL = "host=localhost port=5432  dbname=postgres sslmode=disable"
+DB_URL = "host=localhost port=5432 dbname=postgres sslmode=disable"
 
 build:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
@@ -29,10 +29,7 @@ version: build
 test:
 	go test -v $(PKG)
 
-install-lint-deps:
-	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2
-
-lint: install-lint-deps
+lint:
 	golangci-lint run ./...  --config=../.golangci.yml
 
 migrate-up:
