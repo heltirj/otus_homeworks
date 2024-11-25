@@ -6,7 +6,7 @@ import (
 
 	"github.com/heltirj/otus_homeworks/hw12_13_14_15_calendar/internal/logger"
 	"github.com/heltirj/otus_homeworks/hw12_13_14_15_calendar/internal/storage"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -38,7 +38,7 @@ func NewConfig(filename string) (*Config, error) {
 	}
 
 	var config Config
-	if err := yaml.Unmarshal(bytes, &config); err != nil {
+	if err = yaml.Unmarshal(bytes, &config); err != nil {
 		return nil, err
 	}
 
