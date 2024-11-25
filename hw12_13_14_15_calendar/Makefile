@@ -29,7 +29,10 @@ version: build
 test:
 	go test -v $(PKG)
 
-lint:
+install-lint-deps:
+	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2
+
+lint: install-lint-deps
 	golangci-lint run ./...  --config=../.golangci.yml
 
 migrate-up:
@@ -38,5 +41,5 @@ migrate-up:
 migrate-down:
 	@goose postgres down $(DB_URL)
 
-.PHONY: build run build-img run-img version test lint migrate-up migrate-down
+.PHONY: build run build-img run-img version test lint migrate-up migrate-down install-lint-deps
 
