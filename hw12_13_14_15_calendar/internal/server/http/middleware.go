@@ -2,10 +2,22 @@ package internalhttp
 
 import (
 	"net/http"
+	"time"
 )
 
-func loggingMiddleware(next http.Handler) http.Handler { //nolint:unused
+func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO
+		start := time.Now()
+		ip := r.RemoteAddr
+		userAgent := r.UserAgent()
+
+		rw := &responseWriter{ResponseWriter: w}
+		next.ServeHTTP(rw, r)
+
+		latency := time.Since(start)
+
+		// Логируем информацию о запросе
+		s.logger.InfoKV("handled request", "ip", ip, "time", time.Now(), "method", r.Method, "path", r.URL.Path,
+			"httpVersion", r.Proto, "statusCode", rw.statusCode, "latency", latency, "userAgent", userAgent)
 	})
 }
