@@ -6,7 +6,7 @@ import (
 
 	"github.com/heltirj/otus_homeworks/hw12_13_14_15_calendar/internal/logger"
 	"github.com/heltirj/otus_homeworks/hw12_13_14_15_calendar/internal/storage"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {

@@ -1,5 +1,5 @@
-log_level: WARN # DEBUG/WARN/INFO/ERROR
-storage_type: in-memory # 'sql'/'in-memory'
+logLevel: WARN # DEBUG/WARN/INFO/ERROR
+storageType: in-memory # 'sql'/'in-memory'
 database:
   dsn: user:password@tcp(127.0.0.1:3306)/dbname
 service:
