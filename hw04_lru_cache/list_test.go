@@ -15,6 +15,15 @@ func TestList(t *testing.T) {
 		require.Nil(t, l.Back())
 	})
 
+	t.Run("add elem to empty list", func(t *testing.T) {
+		l := NewList()
+
+		l.PushFront(10)
+
+		require.True(t, l.Front() == l.Back())
+		require.Equal(t, 1, l.Len())
+	})
+
 	t.Run("complex", func(t *testing.T) {
 		l := NewList()
 
@@ -48,4 +57,31 @@ func TestList(t *testing.T) {
 		}
 		require.Equal(t, []int{70, 80, 60, 40, 10, 30, 50}, elems)
 	})
+}
+
+func Test_list_addItem(t *testing.T) {
+	var l list
+	for _, addT := range []addType{addTypeFront, addTypeBack} {
+		l.addItem(&ListItem{Value: 10}, addT)
+		require.Equal(t, 1, l.Len())
+		require.Equal(t, 10, l.Front().Value)
+		require.True(t, l.Front() == l.Back())
+
+		l = list{}
+	}
+
+	l.addItem(&ListItem{Value: 20}, addTypeFront)
+	require.Equal(t, 1, l.Len())
+	require.Equal(t, 20, l.Front().Value)
+	require.Equal(t, 20, l.Back().Value)
+
+	l.addItem(&ListItem{Value: 30}, addTypeBack)
+	require.Equal(t, 2, l.Len())
+	require.Equal(t, 20, l.Front().Value)
+	require.Equal(t, 30, l.Back().Value)
+
+	l.addItem(&ListItem{Value: 30}, addTypeFront)
+	require.Equal(t, 3, l.Len())
+	require.Equal(t, 30, l.Front().Value)
+	require.Equal(t, 30, l.Back().Value)
 }
