@@ -156,6 +156,10 @@ func TestTelnetClient_Close(t *testing.T) {
 		if err != nil {
 			return
 		}
+
+		mx := &sync.RWMutex{}
+		mx.Lock()
+		defer mx.Unlock()
 		client.(*telnetClient).conn = conn
 	}()
 
