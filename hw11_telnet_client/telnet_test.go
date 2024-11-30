@@ -145,22 +145,20 @@ func TestTelnetClient_Close(t *testing.T) {
 
 	client := NewTelnetClient(mockAddr, mockTimeout, in, out)
 
-	// Mock connection
+	connCh := make(chan net.Conn)
 	ln, err := net.Listen("tcp", mockAddr)
 	if err != nil {
 		t.Fatalf("Listen failed: %v", err)
 	}
 	defer ln.Close()
+
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
+			t.Fatalf("Accept failed: %v", err)
 			return
 		}
-
-		mx := &sync.RWMutex{}
-		mx.Lock()
-		defer mx.Unlock()
-		client.(*telnetClient).conn = conn
+		connCh <- conn
 	}()
 
 	err = client.Connect()
@@ -168,7 +166,10 @@ func TestTelnetClient_Close(t *testing.T) {
 		t.Fatalf("Connect failed: %v", err)
 	}
 
-	if err = client.Close(); err != nil {
+	client.(*telnetClient).conn = <-connCh
+
+	err = client.Close()
+	if err != nil {
 		t.Fatalf("Close failed: %v", err)
 	}
 }
