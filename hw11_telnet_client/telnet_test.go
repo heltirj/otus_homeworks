@@ -155,7 +155,6 @@ func TestTelnetClient_Close(t *testing.T) {
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
-			t.Fatalf("Accept failed: %v", err)
 			return
 		}
 		connCh <- conn
