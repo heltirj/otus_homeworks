@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -62,4 +64,168 @@ func TestTelnetClient(t *testing.T) {
 
 		wg.Wait()
 	})
+}
+
+var (
+	mockAddr    = "127.0.0.1:9999"
+	mockMsg     = "Hello, world!\n"
+	mockTimeout = time.Second * 5
+)
+
+type mockReadWriteCloser struct {
+	io.Reader
+	io.Writer
+}
+
+func (m *mockReadWriteCloser) Close() error { return nil }
+
+func startMockServer(t *testing.T, address string, response string) net.Listener {
+	t.Helper()
+	ln, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Fatalf("failed to create mock server: %v", err)
+	}
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				c.Write([]byte(response))
+			}(conn)
+		}
+	}()
+
+	return ln
+}
+
+func TestNewTelnetClient(t *testing.T) {
+	in := &mockReadWriteCloser{strings.NewReader(mockMsg), &strings.Builder{}}
+	out := &strings.Builder{}
+
+	client := NewTelnetClient(mockAddr, mockTimeout, in, out)
+
+	if client == nil {
+		t.Fatal("NewTelnetClient returned nil")
+	}
+
+	if client.(*telnetClient).address != mockAddr {
+		t.Errorf("expected address %v, got %v", mockAddr, client.(*telnetClient).address)
+	}
+
+	if client.(*telnetClient).timeout != mockTimeout {
+		t.Errorf("expected timeout %v, got %v", mockTimeout, client.(*telnetClient).timeout)
+	}
+}
+
+func TestTelnetClient_Connect(t *testing.T) {
+	in := &mockReadWriteCloser{strings.NewReader(mockMsg), &strings.Builder{}}
+	out := &strings.Builder{}
+
+	ln := startMockServer(t, mockAddr, mockMsg)
+	defer ln.Close()
+
+	client := NewTelnetClient(mockAddr, mockTimeout, in, out)
+
+	if err := client.Connect(); err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	if client.(*telnetClient).conn == nil {
+		t.Fatal("expected conn to be non-nil after Connect")
+	}
+}
+
+func TestTelnetClient_Close(t *testing.T) {
+	in := &mockReadWriteCloser{strings.NewReader(mockMsg), &strings.Builder{}}
+	out := &strings.Builder{}
+
+	client := NewTelnetClient(mockAddr, mockTimeout, in, out)
+
+	// Mock connection
+	ln, err := net.Listen("tcp", mockAddr)
+	if err != nil {
+		t.Fatalf("Listen failed: %v", err)
+	}
+	defer ln.Close()
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		client.(*telnetClient).conn = conn
+	}()
+
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	if err = client.Close(); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+}
+
+func TestTelnetClient_Send(t *testing.T) {
+	in := &mockReadWriteCloser{strings.NewReader(mockMsg), &strings.Builder{}}
+	out := &strings.Builder{}
+
+	// Mock server to capture sent data
+	listener, err := net.Listen("tcp", mockAddr)
+	if err != nil {
+		t.Fatalf("failed to create mock server: %v", err)
+	}
+	defer listener.Close()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		reader := bufio.NewReader(conn)
+		received, _ := reader.ReadString('\n')
+		if received != mockMsg {
+			t.Errorf("expected %v, got %v", mockMsg, received)
+		}
+	}()
+
+	client := NewTelnetClient(mockAddr, mockTimeout, in, out)
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+	defer client.Close()
+
+	err = client.Send()
+	if err != nil {
+		t.Fatalf("Send failed: %v", err)
+	}
+}
+
+func TestTelnetClient_Receive(t *testing.T) {
+	in := &mockReadWriteCloser{strings.NewReader(mockMsg), &strings.Builder{}}
+	out := &strings.Builder{}
+
+	ln := startMockServer(t, mockAddr, mockMsg)
+	defer ln.Close()
+
+	client := NewTelnetClient(mockAddr, mockTimeout, in, out)
+	err := client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+	defer client.Close()
+
+	err = client.Receive()
+	if err != nil {
+		t.Fatalf("Receive failed: %v", err)
+	}
+
+	if out.String() != mockMsg {
+		t.Errorf("expected %v, got %v", mockMsg, out.String())
+	}
 }
